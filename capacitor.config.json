@@ -1,1 +1,2 @@
-{"appId":"com.spendly.expenses","appName":"Spendly","webDir":"www","android":{"allowMixedContent":false}}
+{"appId":"com.spendly.expenses","appName":"Spendly","webDir":"www","android":{"allowMixedContent":false},
+"plugins":{"SocialLogin":{"providers":{"google":true,"facebook":false,"apple":false,"twitter":false}}}}
