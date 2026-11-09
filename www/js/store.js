@@ -17,7 +17,7 @@ const KEY='spendly2',OLD_KEY='spendly1',DEV_KEY='spendly2_dev',PREV_KEY='spendly
 const CURRENCIES=['BDT','USD','EUR','GBP','INR','PKR','AED','SAR','JPY','CAD','AUD','SGD','MYR','CNY','TRY','QAR','KWD'];
 const WALLET_EMOJI=['💵','🏦','📱','💳','👛','🪙'];
 const defCats=()=>[['Food','🍔','#f97316'],['Transport','🚌','#3b82f6'],['Bills','💡','#eab308'],['Shopping','🛍️','#ec4899'],['Health','💊','#10b981'],['Fun','🎬','#8b5cf6'],['Education','📚','#06b6d4'],['Other','📦','#94a3b8']].map((c,i)=>({id:'c'+i,name:c[0],emoji:c[1],color:c[2],limit:0,u:0}));
-const freshState=()=>({v:2,name:'',cur:'BDT',budget:0,su:0,cats:defCats(),accs:[{id:'a0',name:'Cash',emoji:'💵',cur:'BDT',open:0,u:0}],rates:{},tx:[],rec:[],del:{}});
+const freshState=()=>({v:2,name:'',cur:'BDT',budget:0,su:0,cats:defCats(),accs:[{id:'a0',name:'Cash',emoji:'💵',cur:'BDT',open:0,u:0}],rates:{},tx:[],rec:[],goals:[],debts:[],del:{}});
 
 /* ===== validate / migrate ===== */
 function normalize(o,stats){
@@ -38,13 +38,18 @@ function normalize(o,stats){
     seen.add(id);
     const x={id,type:t.type,amt:+t.amt,cat:t.type==='e'?String(t.cat||''):'',acc:accIds.has(t.acc)?t.acc:a0,date:t.date,note:String(t.note||'').slice(0,200),u:+t.u||0};
     if(t.type==='t'){if(!accIds.has(t.to)||t.to===x.acc){stats.dropped++;continue}x.to=t.to;x.amt2=+t.amt2>0?+t.amt2:x.amt}
-    if(t.rid)x.rid=String(t.rid);if(t.smp)x.smp=1;
+    if(t.rid)x.rid=String(t.rid);if(t.smp)x.smp=1;if(t.pic)x.pic=1;
     s.tx.push(x);
   }
   for(const r of Array.isArray(o.rec)?o.rec:[]){
     if(!r||!'ei'.includes(r.type)||!(+r.amt>0)||!isDate(r.start)||!['daily','weekly','monthly','yearly'].includes(r.freq))continue;
     s.rec.push({id:String(r.id||uid('r')),type:r.type,amt:+r.amt,cat:String(r.cat||''),acc:accIds.has(r.acc)?r.acc:a0,note:String(r.note||'').slice(0,200),freq:r.freq,start:r.start,end:isDate(r.end)?r.end:'',n:Math.max(0,+r.n||0),on:r.on!==false,u:+r.u||0});
   }
+  const hist=h=>(Array.isArray(h)?h:[]).filter(x=>x&&isDate(x.d)&&Number.isFinite(+x.amt)&&+x.amt!==0).map(x=>({d:x.d,amt:+x.amt}));
+  for(const g of Array.isArray(o.goals)?o.goals:[]){if(!g||!(+g.target>0))continue;
+    s.goals.push({id:String(g.id||uid('g')),name:String(g.name||'Goal').slice(0,40),emoji:String(g.emoji||'🎯').slice(0,4),target:+g.target,due:isDate(g.due)?g.due:'',hist:hist(g.hist),u:+g.u||0})}
+  for(const b of Array.isArray(o.debts)?o.debts:[]){if(!b||!(+b.amt>0)||!['lent','borrowed'].includes(b.dir))continue;
+    s.debts.push({id:String(b.id||uid('b')),who:String(b.who||'Someone').slice(0,40),dir:b.dir,amt:+b.amt,date:isDate(b.date)?b.date:todayStr(),due:isDate(b.due)?b.due:'',note:String(b.note||'').slice(0,120),pay:hist(b.pay).filter(x=>x.amt>0),u:+b.u||0})}
   s.del={};if(o.del&&typeof o.del==='object')for(const k in o.del)if(+o.del[k]>0)s.del[k]=+o.del[k];
   return s;
 }
@@ -72,7 +77,8 @@ function loadAll(){
   }catch(e){S=null}
   S=S||freshState();
   try{D=JSON.parse(localStorage.getItem(DEV_KEY))||{}}catch(e){D={}}
-  D={theme:'auto',user:null,auto:true,last:0,err:'',lastAcc:'',lastCat:'',dev:uid('d'),...D};
+  D={theme:'auto',lang:'en',lock:{on:false,h:'',s:'',bio:false,tries:0,until:0},rem:{bills:false,daily:false},assist:{auto:false},user:null,auto:true,last:0,err:'',lastAcc:'',lastCat:'',dev:uid('d'),...D};
+  D.lock={on:false,h:'',s:'',bio:false,tries:0,until:0,...D.lock};D.rem={bills:false,daily:false,...D.rem};D.assist={auto:false,...D.assist};
   if(typeof D0!=='undefined'&&D0&&!localStorage.getItem(DEV_KEY))D.theme=D0;
   return had;
 }
@@ -82,6 +88,7 @@ function persist(sync=true){
   try{localStorage.setItem(KEY,JSON.stringify(S));lsOK=true}
   catch(e){if(lsOK&&typeof toast==='function')toast('Could not save on this device. Export a backup now.',{kind:'err'});lsOK=false}
   mirrorSoon();
+  if(typeof remindersSoon==='function')remindersSoon();
   if(sync&&typeof syncSoon==='function')syncSoon();
 }
 /* second copy in the app's private files folder (native only) in case WebView storage is cleared */
@@ -104,10 +111,12 @@ const cat=id=>S.cats.find(c=>c.id===id)||OTHER;
 const rate=c=>c===S.cur?1:(S.rates[c]>0?S.rates[c]:1);
 const needsRate=a=>a.cur!==S.cur&&!(S.rates[a.cur]>0);
 const base=t=>t.amt*rate(acc(t.acc).cur);
+const loc=()=>(typeof D==='object'&&D&&D.lang==='bn')?'bn-BD':undefined;
+const parseNum=v=>{const x=String(v==null?'':v).replace(/[০-৯]/g,c=>'০১২৩৪৫৬৭৮৯'.indexOf(c)).replace(/[,\s]/g,'');const n=parseFloat(x);return isNaN(n)?NaN:n};
 const fmt=(n,cur)=>{cur=cur||S.cur;const a=Math.abs(n),d=cur==='JPY'||a>=1000||Math.abs(n-Math.round(n))<.005?0:2;
-  try{return new Intl.NumberFormat(undefined,{style:'currency',currency:cur,maximumFractionDigits:d,minimumFractionDigits:d}).format(n)}catch(e){return cur+' '+n.toFixed(d)}};
-const mname=m=>new Date(m+'-15').toLocaleDateString(undefined,{month:'long',year:'numeric'});
-const mshort=m=>new Date(m+'-15').toLocaleDateString(undefined,{month:'short'});
+  try{return new Intl.NumberFormat(loc(),{style:'currency',currency:cur,maximumFractionDigits:d,minimumFractionDigits:d}).format(n)}catch(e){return cur+' '+n.toFixed(d)}};
+const mname=m=>new Date(m+'-15').toLocaleDateString(loc(),{month:'long',year:'numeric'});
+const mshort=m=>new Date(m+'-15').toLocaleDateString(loc(),{month:'short'});
 const shiftM=(m,d)=>{const t=new Date(m+'-15');t.setMonth(t.getMonth()+d);return dstr(t).slice(0,7)};
 const round2=n=>Math.round(n*100)/100;
 
@@ -120,7 +129,7 @@ function monthMap(){const mm={};
 function balance(a){let b=a.open||0;
   for(const t of S.tx){if(t.type==='e'&&t.acc===a.id)b-=t.amt;else if(t.type==='i'&&t.acc===a.id)b+=t.amt;else if(t.type==='t'){if(t.acc===a.id)b-=t.amt;if(t.to===a.id)b+=(t.amt2||t.amt)}}
   return b}
-const isEmptyData=s=>!s.tx.length&&!s.rec.length;
+const isEmptyData=s=>!s.tx.length&&!s.rec.length&&!(s.goals||[]).length&&!(s.debts||[]).length;
 
 /* ===== edits with tombstones (so deletes survive a sync) ===== */
 function tomb(id){S.del[id]=Date.now()}
@@ -159,13 +168,14 @@ function mergeData(A,B){
   const out=(A.su||0)>=(B.su||0)?clone(A):clone(B);
   const del={};for(const k in B.del)del[k]=B.del[k];for(const k in A.del)del[k]=Math.max(del[k]||0,A.del[k]);
   const cutoff=Date.now()-120*864e5;for(const k in del)if(del[k]<cutoff)delete del[k];
-  for(const col of ['tx','cats','accs','rec']){
+  for(const col of ['tx','cats','accs','rec','goals','debts']){
     const map=new Map();
     for(const it of [].concat(A[col],B[col])){const ex=map.get(it.id);
       if(!ex)map.set(it.id,clone(it));
       else{const win=(it.u||0)>(ex.u||0)?clone(it):ex;if(col==='rec')win.n=Math.max(it.n,ex.n);map.set(it.id,win)}}
     out[col]=[...map.values()].filter(it=>!(del[it.id]>(it.u||0)));
   }
+  out.goals=out.goals||[];out.debts=out.debts||[];
   if(!out.accs.length)out.accs=clone(A.accs.length?A.accs:B.accs);
   if(!out.cats.length)out.cats=defCats();
   const ids=new Set(out.accs.map(a=>a.id));

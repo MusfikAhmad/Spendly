@@ -150,3 +150,22 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:10p
 @keyframes tout{to{opacity:0;transform:translateY(14px)}}
 
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+/* plan card, goals, receipts */
+.plan p{margin:0 0 8px}.plan .btn{margin-top:4px}
+.goal .bar{margin:4px 0}
+.thumbpic{width:56px;height:56px;border-radius:12px;object-fit:cover;border:1px solid var(--bd);cursor:pointer}
+/* app lock */
+#lock,#cover{position:fixed;inset:0;z-index:200;background:var(--bg);display:grid;place-items:center;opacity:0;transition:opacity .22s}
+#lock.in,#cover{opacity:1}
+#cover .logo,#lock .logo{font-size:54px}
+.lk{width:min(330px,88vw);text-align:center;padding-top:var(--sat)}
+.lk h2{margin:6px 0 18px;font-size:22px}
+.dots{display:flex;justify-content:center;gap:16px;margin:8px 0 6px}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--mut);transition:transform .18s cubic-bezier(.3,1.8,.5,1),background .12s,border-color .12s}
+.dots i.on{background:var(--ac);border-color:var(--ac);transform:scale(1.15)}
+.msg{min-height:22px;font-size:13px;color:var(--bad);margin:4px 0 10px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:290px;margin:0 auto}
+.pad button{height:64px;border-radius:50%;font-size:24px;font-weight:600;padding:0;background:var(--card)}
+.pad button:active{background:var(--acs);transform:scale(.92)}
+.pinb{padding-bottom:22px;text-align:center}

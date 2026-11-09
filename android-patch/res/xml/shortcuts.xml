@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_expense_short"
+        android:shortcutLongLabel="@string/sc_expense_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="spendly://add?type=expense"
+            android:targetPackage="com.spendly.expenses"
+            android:targetClass="com.spendly.expenses.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="add_income"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_income_short"
+        android:shortcutLongLabel="@string/sc_income_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="spendly://add?type=income"
+            android:targetPackage="com.spendly.expenses"
+            android:targetClass="com.spendly.expenses.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="ask_ai"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_ask_short"
+        android:shortcutLongLabel="@string/sc_ask_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="spendly://summary"
+            android:targetPackage="com.spendly.expenses"
+            android:targetClass="com.spendly.expenses.MainActivity" />
+    </shortcut>
+</shortcuts>

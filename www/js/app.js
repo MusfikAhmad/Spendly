@@ -8,9 +8,9 @@ const shake=el=>{if(!el)return;el.classList.remove('shake');void el.offsetWidth;
 
 /* ----- toasts ----- */
 function toast(msg,o={}){
-  const host=$('#toasts');host.innerHTML='';
+  const host=$('#toasts');while(host.children.length>=2)host.firstChild.remove();
   const t=document.createElement('div');t.className='toast'+(o.kind==='err'?' err':'');
-  t.innerHTML='<span>'+esc(msg)+'</span>'+(o.action?'<button>'+esc(o.action)+'</button>':'');
+  t.innerHTML='<span>'+esc(_(msg))+'</span>'+(o.action?'<button>'+esc(_(o.action))+'</button>':'');
   host.appendChild(t);let done=false;
   const hide=()=>{if(done)return;done=true;t.classList.add('out');setTimeout(()=>t.remove(),220)};
   if(o.action)t.querySelector('button').onclick=()=>{hide();o.fn&&o.fn()};
@@ -23,7 +23,7 @@ const sheetStack=[];let histOn=false,ignorePop=0;
 function openSheet(html,opts={}){
   const ov=document.createElement('div');ov.className='overlay';
   const sh=document.createElement('div');sh.className='sheet '+(opts.cls||'');sh.setAttribute('role','dialog');sh.setAttribute('aria-modal','true');
-  sh.innerHTML=html;ov.appendChild(sh);$('#sheets').appendChild(ov);
+  sh.innerHTML=sx(html);ov.appendChild(sh);$('#sheets').appendChild(ov);
   const api={el:sh,closed:false,viaPop:false,
     async request(viaPop){
       if(api.closed)return true;
@@ -56,14 +56,14 @@ window.addEventListener('popstate',async()=>{
   const ok=await top.request(true);
   if(!ok||sheetStack.length){history.pushState({sh:1},'');histOn=true}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&sheetStack.length)sheetStack[sheetStack.length-1].request()});
-const head=t=>'<div class="sheet-h"><span class="grab"></span><h2>'+esc(t)+'</h2><button class="ib close" aria-label="Close" type="button">✕</button></div>';
+const head=t=>'<div class="sheet-h"><span class="grab"></span><h2>'+esc(_(t))+'</h2><button class="ib close" aria-label="Close" type="button">✕</button></div>';
 
 function choose({title,text,options}){return new Promise(res=>{let out=null;
-  const sh=openSheet('<div class="dlg-b"><h2>'+esc(title)+'</h2>'+(text?'<p class="sub">'+esc(text)+'</p>':'')+'</div><div class="dlg-opts">'+options.map((o,i)=>'<button type="button" class="btn '+(o.kind||'')+'" data-i="'+i+'">'+esc(o.label)+'</button>').join('')+'</div>',{cls:'dlg',onClose:()=>res(out)});
+  const sh=openSheet('<div class="dlg-b"><h2>'+esc(_(title))+'</h2>'+(text?'<p class="sub">'+esc(_(text))+'</p>':'')+'</div><div class="dlg-opts">'+options.map((o,i)=>'<button type="button" class="btn '+(o.kind||'')+'" data-i="'+i+'">'+esc(_(o.label))+'</button>').join('')+'</div>',{cls:'dlg',onClose:()=>res(out)});
   sh.el.addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(b){out=options[+b.dataset.i].id;sh.close()}})})}
 const ask=o=>choose({title:o.title,text:o.text,options:[{id:true,label:o.ok||'OK',kind:o.danger?'danger fill':'pri'},{id:false,label:o.cancel||'Cancel'}]}).then(v=>v===true);
 function askSelect({title,text,options,ok}){return new Promise(res=>{let out=null;
-  const sh=openSheet('<div class="dlg-b"><h2>'+esc(title)+'</h2><p class="sub">'+esc(text)+'</p><select id="asSel">'+options.map(o=>'<option value="'+esc(o.v)+'">'+esc(o.label)+'</option>').join('')+'</select></div><div class="dlg-opts"><button type="button" class="btn pri" id="asOk">'+esc(ok||'OK')+'</button><button type="button" class="btn close">Cancel</button></div>',{cls:'dlg',onClose:()=>res(out)});
+  const sh=openSheet('<div class="dlg-b"><h2>'+esc(_(title))+'</h2><p class="sub">'+esc(_(text))+'</p><select id="asSel">'+options.map(o=>'<option value="'+esc(o.v)+'">'+esc(o.label)+'</option>').join('')+'</select></div><div class="dlg-opts"><button type="button" class="btn pri" id="asOk">'+esc(_(ok||'OK'))+'</button><button type="button" class="btn close">'+esc(_('Cancel'))+'</button></div>',{cls:'dlg',onClose:()=>res(out)});
   $('#asOk',sh.el).onclick=()=>{out=$('#asSel',sh.el).value;sh.close()}})}
 
 /* ----- theme & charts ----- */
@@ -91,9 +91,10 @@ function setSeg(seg,val){const btns=$$('button',seg);let i=btns.findIndex(b=>b.d
   seg.style.setProperty('--i',i);btns.forEach((b,k)=>b.classList.toggle('on',k===i))}
 
 /* ===================== render ===================== */
+const TABNAME={home:'Overview',act:'Activity',ins:'Insights',wal:'Money'};
 function render(){
-  $('#hi').textContent=S.name?'Hi, '+S.name+' 👋':'Spendly';
-  $('#pageSub').textContent={home:'Overview',act:'Activity',ins:'Insights',wal:'Wallets'}[tab];
+  $('#hi').textContent=S.name?_('Hi, {n} 👋',{n:S.name}):'Spendly';
+  $('#pageSub').textContent=_(TABNAME[tab]);
   paintAcctBtn();
   renderHome();renderAct();renderIns();renderWal();
 }
@@ -104,21 +105,22 @@ function paintAcctBtn(){
 function renderHome(){
   $('#monthbar').hidden=!(tab==='home'||(tab==='act'&&F.scope==='m'));
   const st=monthStats(M),[y,mo]=M.split('-').map(Number),dim=new Date(y,mo,0).getDate(),td=todayStr(),isCur=M===td.slice(0,7),elapsed=isCur?+td.slice(8):dim;
-  $('#mo').textContent=mname(M);$('#heroMo').textContent=new Date(M+'-15').toLocaleDateString(undefined,{month:'long'});
+  $('#mo').textContent=mname(M);$('#heroMo').textContent=new Date(M+'-15').toLocaleDateString(loc(),{month:'long'});
   $('#goNow').classList.toggle('show',!isCur);
   num('#kSpent',st.sp);num('#kInc',st.inc);
   num('#kBal',st.inc-st.sp,st.inc-st.sp>=0?'pos':'neg');
   const left=S.budget?S.budget-st.sp:null;
-  $('#k4l').textContent=S.budget?'Budget left':'Avg / day';
+  $('#k4l').textContent=S.budget?_('Budget left'):_('Avg / day');
   num('#k4',S.budget?left:st.sp/Math.max(elapsed,1),left!==null&&left<0?'neg':'');
   const p=S.budget?st.sp/S.budget*100:0,bar=$('#heroBar');
   requestAnimationFrame(()=>{bar.style.width=Math.min(p,100)+'%';bar.style.background=p>100?'var(--bad)':p>=80?'var(--warn)':'var(--ac)'});
-  $('#heroTxt').innerHTML=S.budget?(p>100?'<span class="neg">Over budget by '+esc(fmt(st.sp-S.budget))+'</span>':Math.round(p)+'% of your '+esc(fmt(S.budget))+' budget'):'<a href="#" id="setBud" style="color:var(--ac)">Set a monthly budget</a>';
+  $('#heroTxt').innerHTML=S.budget?(p>100?'<span class="neg">'+esc(_('Over budget by {x}',{x:fmt(st.sp-S.budget)}))+'</span>':esc(_('{p}% of your {b} budget',{p:Math.round(p),b:fmt(S.budget)}))):'<a href="#" id="setBud" style="color:var(--ac)">'+esc(_('Set a monthly budget'))+'</a>';
+  renderPlan();
 
   const ids=Object.keys(st.bc).sort((a,b)=>st.bc[b]-st.bc[a]);
   $('#cv1').hidden=!ids.length;$('#em1').hidden=!!ids.length;
   if(ids.length){
-    const data={labels:ids.map(i=>cat(i).emoji+' '+cat(i).name),datasets:[{data:ids.map(i=>st.bc[i]),backgroundColor:ids.map(i=>cat(i).color),borderWidth:2,borderColor:css('--card')}]};
+    const data={labels:ids.map(i=>cat(i).emoji+' '+cname(cat(i))),datasets:[{data:ids.map(i=>st.bc[i]),backgroundColor:ids.map(i=>cat(i).color),borderWidth:2,borderColor:css('--card')}]};
     if(!ch.c1){ch.c1=new Chart($('#c1'),{type:'doughnut',data,options:{...baseOpt(),cutout:'62%',plugins:{legend:{position:'bottom',labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>money(c)+' ('+Math.round(c.raw/Math.max(1,ch.c1._sum)*100)+'%)'}}},
       onClick:(e,el)=>{if(el.length){F.cat=ch.c1._ids[el[0].index];F.scope='m';F.type='all';buzz();showTab('act')}}}})}
     else{ch.c1.data=data;ch.c1.update()}
@@ -126,46 +128,46 @@ function renderHome(){
   const daily=Array(dim).fill(0);
   for(const t of S.tx)if(t.type==='e'&&t.date.startsWith(M))daily[+t.date.slice(8)-1]+=base(t);
   let run=0;const cum=daily.map((v,i)=>{run+=v;return isCur&&i+1>elapsed?null:run}),ac=css('--ac');
-  const ds=[{label:'Spent',data:cum,borderColor:ac,backgroundColor:ac+'33',fill:true,tension:.3,pointRadius:0}];
-  if(S.budget)ds.push({label:'Budget',data:Array(dim).fill(S.budget),borderColor:'#ef4444',borderDash:[6,4],pointRadius:0,fill:false});
-  const d3={labels:daily.map((_,i)=>i+1),datasets:ds};
+  const ds=[{label:_('Spent'),data:cum,borderColor:ac,backgroundColor:ac+'33',fill:true,tension:.3,pointRadius:0}];
+  if(S.budget)ds.push({label:_('Budget'),data:Array(dim).fill(S.budget),borderColor:'#ef4444',borderDash:[6,4],pointRadius:0,fill:false});
+  const d3={labels:daily.map((_x,i)=>i+1),datasets:ds};
   if(!ch.c3)ch.c3=new Chart($('#c3'),{type:'line',data:d3,options:{...baseOpt(),interaction:{mode:'index',intersect:false},plugins:{legend:{position:'bottom',labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}}});
   else{ch.c3.data=d3;ch.c3.update()}
   // budgets
   const all=S.cats.map(c=>c.id).concat(ids.filter(i=>!S.cats.some(c=>c.id===i)));
   const rows=all.filter(i=>st.bc[i]||cat(i).limit).sort((a,b)=>(st.bc[b]||0)-(st.bc[a]||0));
   $('#bg').innerHTML=rows.map(i=>{const c=cat(i),v=st.bc[i]||0,pc=c.limit?v/c.limit*100:(st.sp?v/st.sp*100:0),over=c.limit&&v>c.limit,warn=c.limit&&!over&&pc>=80;
-    return '<div><div class="bl"><span>'+c.emoji+' '+esc(c.name)+'</span><span class="'+(over?'neg':warn?'warn':'')+'">'+esc(fmt(v))+(c.limit?' / '+esc(fmt(c.limit)):' · '+Math.round(pc)+'%')+'</span></div><div class="bar"><i data-w="'+Math.min(pc,100)+'" style="background:'+(over?'var(--bad)':warn?'var(--warn)':c.color)+'"></i></div></div>'}).join('')||'<p class="sub">Nothing to show yet. Spending and category budgets appear here.</p>';
+    return '<div><div class="bl"><span>'+c.emoji+' '+esc(cname(c))+'</span><span class="'+(over?'neg':warn?'warn':'')+'">'+esc(fmt(v))+(c.limit?' / '+esc(fmt(c.limit)):' · '+Math.round(pc)+'%')+'</span></div><div class="bar"><i data-w="'+Math.min(pc,100)+'" style="background:'+(over?'var(--bad)':warn?'var(--warn)':c.color)+'"></i></div></div>'}).join('')||'<p class="sub">'+esc(_('Nothing to show yet. Spending and category budgets appear here.'))+'</p>';
   requestAnimationFrame(()=>$$('#bg .bar i').forEach(i=>i.style.width=i.dataset.w+'%'));
 }
 
 /* ----- Activity ----- */
 function filtered(){const q=F.q.trim().toLowerCase();
   return S.tx.filter(t=>(F.scope==='all'||t.date.startsWith(M))&&(F.type==='all'||t.type===F.type)&&(!F.cat||t.cat===F.cat)&&(!F.acc||t.acc===F.acc||t.to===F.acc)&&
-    (!q||(t.note||'').toLowerCase().includes(q)||(t.type==='e'&&cat(t.cat).name.toLowerCase().includes(q))||acc(t.acc).name.toLowerCase().includes(q)))
+    (!q||(t.note||'').toLowerCase().includes(q)||(t.type==='e'&&(cat(t.cat).name.toLowerCase().includes(q)||cname(cat(t.cat)).toLowerCase().includes(q)))||acc(t.acc).name.toLowerCase().includes(q)))
     .sort((a,b)=>b.date.localeCompare(a.date)||(b.u||0)-(a.u||0)||String(b.id).localeCompare(String(a.id)))}
 function txRow(t){
   const a=acc(t.acc),multi=S.accs.length>1;let ic,color,title,sub,amt,cls,alt='';
-  if(t.type==='t'){const to=acc(t.to);ic='⇄';color='var(--ac)';title=t.note||'Transfer';sub=a.name+' → '+to.name;amt=fmt(t.amt,a.cur);cls='';if(to.cur!==a.cur)alt='→ '+fmt(t.amt2||t.amt,to.cur)}
-  else if(t.type==='i'){ic='💰';color='#22c55e';title=t.note||'Income';sub='Income'+(multi?' · '+a.name:'');amt='+'+fmt(t.amt,a.cur);cls='pos'}
-  else{const c=cat(t.cat);ic=c.emoji;color=c.color;title=t.note||c.name;sub=c.name+(multi?' · '+a.name:'');amt='−'+fmt(t.amt,a.cur);cls='neg'}
-  return '<div class="tx'+(t.id===lastAdded?' new':'')+'" data-id="'+esc(t.id)+'" role="button" tabindex="0"><div class="ic" style="background:'+color+'33">'+ic+'</div><div class="m"><div class="t">'+esc(title)+(t.rid?'<span class="rep" title="Repeating">↻</span>':'')+'</div><div class="sub">'+esc(sub)+'</div></div><b class="'+cls+'">'+esc(amt)+(alt?'<span class="alt">'+esc(alt)+'</span>':'')+'</b></div>'}
+  if(t.type==='t'){const to=acc(t.to);ic='⇄';color='var(--ac)';title=t.note||_('Transfer');sub=a.name+' → '+to.name;amt=fmt(t.amt,a.cur);cls='';if(to.cur!==a.cur)alt='→ '+fmt(t.amt2||t.amt,to.cur)}
+  else if(t.type==='i'){ic='💰';color='#22c55e';title=t.note||_('Income');sub=_('Income')+(multi?' · '+a.name:'');amt='+'+fmt(t.amt,a.cur);cls='pos'}
+  else{const c=cat(t.cat);ic=c.emoji;color=c.color;title=t.note||cname(c);sub=cname(c)+(multi?' · '+a.name:'');amt='−'+fmt(t.amt,a.cur);cls='neg'}
+  return '<div class="tx'+(t.id===lastAdded?' new':'')+'" data-id="'+esc(t.id)+'" role="button" tabindex="0"><div class="ic" style="background:'+color+'33">'+ic+'</div><div class="m"><div class="t">'+esc(title)+(t.rid?'<span class="rep" title="'+esc(_('Repeating'))+'">↻</span>':'')+(t.pic?'<span class="rep" title="'+esc(_('Receipt'))+'">📎</span>':'')+'</div><div class="sub">'+esc(sub)+'</div></div><b class="'+cls+'">'+esc(amt)+(alt?'<span class="alt">'+esc(alt)+'</span>':'')+'</b></div>'}
 function renderAct(){
   $('#monthbar').hidden=!(tab==='home'||(tab==='act'&&F.scope==='m'));
   setSeg($('#fScope'),F.scope);
-  $('#fCat').innerHTML='<option value="">All categories</option>'+S.cats.map(c=>'<option value="'+esc(c.id)+'"'+(F.cat===c.id?' selected':'')+'>'+c.emoji+' '+esc(c.name)+'</option>').join('');
-  $('#fAcc').innerHTML='<option value="">All wallets</option>'+S.accs.map(a=>'<option value="'+esc(a.id)+'"'+(F.acc===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('');
+  $('#fCat').innerHTML='<option value="">'+esc(_('All categories'))+'</option>'+S.cats.map(c=>'<option value="'+esc(c.id)+'"'+(F.cat===c.id?' selected':'')+'>'+c.emoji+' '+esc(cname(c))+'</option>').join('');
+  $('#fAcc').innerHTML='<option value="">'+esc(_('All wallets'))+'</option>'+S.accs.map(a=>'<option value="'+esc(a.id)+'"'+(F.acc===a.id?' selected':'')+'>'+esc(a.name)+'</option>').join('');
   $('#fAcc').parentElement.style.gridTemplateColumns=S.accs.length>1?'':'1fr 1fr';$('#fAcc').hidden=S.accs.length<2;
   $('#fType').value=F.type;if($('#q').value!==F.q)$('#q').value=F.q;
   const r=filtered();let sp=0,inc=0;for(const t of r){if(t.type==='e')sp+=base(t);else if(t.type==='i')inc+=base(t)}
   const anyF=F.cat||F.type!=='all'||F.acc||F.q;
-  $('#fSum').innerHTML=esc((F.scope==='m'?mname(M)+' · ':'All time · ')+r.length+' item'+(r.length===1?'':'s')+(r.length?' · spent '+fmt(sp)+(inc?' · income '+fmt(inc):''):''))+(anyF?' · <a href="#" id="clrF" style="color:var(--ac)">clear filters</a>':'');
-  if(!r.length){$('#ls').innerHTML='<div class="empty"><p>'+(S.tx.length?'Nothing matches these filters.':'No transactions yet.')+'</p><button class="btn pri" data-act="add">Add a transaction</button></div>';return}
+  $('#fSum').innerHTML=esc((F.scope==='m'?mname(M):_('All time'))+' · '+_(r.length===1?'{n} item':'{n} items',{n:r.length})+(r.length?' · '+_('spent {x}',{x:fmt(sp)})+(inc?' · '+_('income {x}',{x:fmt(inc)}):''):''))+(anyF?' · <a href="#" id="clrF" style="color:var(--ac)">'+esc(_('clear filters'))+'</a>':'');
+  if(!r.length){$('#ls').innerHTML='<div class="empty"><p>'+esc(S.tx.length?_('Nothing matches these filters.'):_('No transactions yet.'))+'</p><button class="btn pri" data-act="add">'+esc(_('Add a transaction'))+'</button></div>';return}
   let html='',day='',dayTot=0,buf=[];
-  const flush=()=>{if(buf.length)html+='<div class="day"><span>'+new Date(day+'T12:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short'})+'</span><span>'+(dayTot?(dayTot<0?'−':'+')+esc(fmt(Math.abs(dayTot))):'')+'</span></div>'+buf.join('');buf=[];dayTot=0};
+  const flush=()=>{if(buf.length)html+='<div class="day"><span>'+new Date(day+'T12:00').toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'short'})+'</span><span>'+(dayTot?(dayTot<0?'−':'+')+esc(fmt(Math.abs(dayTot))):'')+'</span></div>'+buf.join('');buf=[];dayTot=0};
   for(const t of r.slice(0,shown)){if(t.date!==day){flush();day=t.date}buf.push(txRow(t));if(t.type==='e')dayTot-=base(t);else if(t.type==='i')dayTot+=base(t)}
   flush();
-  if(r.length>shown)html+='<button class="btn more" id="more">Show '+Math.min(120,r.length-shown)+' more</button>';
+  if(r.length>shown)html+='<button class="btn more" id="more">'+esc(_('Show {n} more',{n:Math.min(120,r.length-shown)}))+'</button>';
   $('#ls').innerHTML=html;
   if(lastAdded){const id=lastAdded;lastAdded=null;setTimeout(()=>{const el=$('.tx[data-id="'+CSS.escape(id)+'"]');el&&el.scrollIntoView&&el.scrollIntoView({block:'nearest',behavior:reduceMotion?'auto':'smooth'})},60)}
 }
@@ -174,37 +176,38 @@ function renderAct(){
 function renderIns(){
   setSeg($('#iRange'),insRange);
   const mm=monthMap(),cur=todayStr().slice(0,7),ms=[];for(let i=insRange-1;i>=0;i--)ms.push(shiftM(cur,-i));
-  const data={labels:ms.map(mshort),datasets:[{label:'Income',data:ms.map(m=>(mm[m]||{inc:0}).inc),backgroundColor:ms.map(m=>m===M?'#16a34a':'#22c55e99'),borderRadius:5},{label:'Expenses',data:ms.map(m=>(mm[m]||{sp:0}).sp),backgroundColor:ms.map(m=>m===M?'#dc2626':'#ef444499'),borderRadius:5}]};
+  const data={labels:ms.map(mshort),datasets:[{label:_('Income'),data:ms.map(m=>(mm[m]||{inc:0}).inc),backgroundColor:ms.map(m=>m===M?'#16a34a':'#22c55e99'),borderRadius:5},{label:_('Expenses'),data:ms.map(m=>(mm[m]||{sp:0}).sp),backgroundColor:ms.map(m=>m===M?'#dc2626':'#ef444499'),borderRadius:5}]};
   if(tab==='ins'||ch.c2){
     if(!ch.c2)ch.c2=new Chart($('#c2'),{type:'bar',data,options:{...baseOpt(),plugins:{legend:{position:'bottom',labels:{boxWidth:10}},tooltip:{callbacks:{label:c=>' '+c.dataset.label+': '+fmt(c.raw)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}},onClick:(e,el)=>{if(el.length){M=ch.c2._ms[el[0].index];F.cat='';buzz();showTab('home')}}}});
     else{ch.c2.data=data;ch.c2.update()}
     ch.c2._ms=ms}
-  $('#yLbl').textContent=insYear;
+  $('#yLbl').textContent=insYear.toLocaleString(loc(),{useGrouping:false});
   let sp=0,inc=0,months=0;const bc={};
   for(const t of S.tx){if(t.type==='t'||!t.date.startsWith(insYear+'-'))continue;const v=base(t);if(t.type==='e'){sp+=v;bc[t.cat]=(bc[t.cat]||0)+v}else inc+=v}
   for(let m=1;m<=12;m++){const k=insYear+'-'+pad(m);if(mm[k]&&mm[k].sp>0)months++}
-  $('#yKpi').innerHTML='<div><span class="sub">Spent</span><b class="neg">'+esc(fmt(sp))+'</b></div><div><span class="sub">Income</span><b class="pos">'+esc(fmt(inc))+'</b></div><div><span class="sub">Avg / month</span><b>'+esc(fmt(months?sp/months:0))+'</b></div>';
+  $('#yKpi').innerHTML='<div><span class="sub">'+esc(_('Spent'))+'</span><b class="neg">'+esc(fmt(sp))+'</b></div><div><span class="sub">'+esc(_('Income'))+'</span><b class="pos">'+esc(fmt(inc))+'</b></div><div><span class="sub">'+esc(_('Avg / month'))+'</span><b>'+esc(fmt(months?sp/months:0))+'</b></div>';
   const top=Object.keys(bc).sort((a,b)=>bc[b]-bc[a]).slice(0,5);
-  $('#yCats').innerHTML=top.map(i=>{const c=cat(i),p=sp?bc[i]/sp*100:0;return '<div><div class="bl"><span>'+c.emoji+' '+esc(c.name)+'</span><span>'+esc(fmt(bc[i]))+' · '+Math.round(p)+'%</span></div><div class="bar"><i data-w="'+p+'" style="background:'+c.color+'"></i></div></div>'}).join('')||'<p class="sub">No spending recorded in '+insYear+'.</p>';
+  $('#yCats').innerHTML=top.map(i=>{const c=cat(i),p=sp?bc[i]/sp*100:0;return '<div><div class="bl"><span>'+c.emoji+' '+esc(cname(c))+'</span><span>'+esc(fmt(bc[i]))+' · '+Math.round(p)+'%</span></div><div class="bar"><i data-w="'+p+'" style="background:'+c.color+'"></i></div></div>'}).join('')||'<p class="sub">'+esc(_('No spending recorded in {y}.',{y:insYear}))+'</p>';
   let rows='';for(let m=12;m>=1;m--){const k=insYear+'-'+pad(m),o=mm[k];if(!o)continue;const net=o.inc-o.sp;
-    rows+='<div class="tx" data-month="'+k+'" role="button" tabindex="0"><div class="m"><div class="t">'+esc(new Date(k+'-15').toLocaleDateString(undefined,{month:'long'}))+(k===M?' <span class="rep">● selected</span>':'')+'</div><div class="sub">Spent '+esc(fmt(o.sp))+' · Income '+esc(fmt(o.inc))+'</div></div><b class="'+(net>=0?'pos':'neg')+'">'+(net>=0?'+':'−')+esc(fmt(Math.abs(net)))+'</b></div>'}
-  $('#yTbl').innerHTML=rows||'<p class="sub">No months with data in '+insYear+'.</p>';
+    rows+='<div class="tx" data-month="'+k+'" role="button" tabindex="0"><div class="m"><div class="t">'+esc(new Date(k+'-15').toLocaleDateString(loc(),{month:'long'}))+(k===M?' <span class="rep">● '+esc(_('selected'))+'</span>':'')+'</div><div class="sub">'+esc(_('Spent'))+' '+esc(fmt(o.sp))+' · '+esc(_('Income'))+' '+esc(fmt(o.inc))+'</div></div><b class="'+(net>=0?'pos':'neg')+'">'+(net>=0?'+':'−')+esc(fmt(Math.abs(net)))+'</b></div>'}
+  $('#yTbl').innerHTML=rows||'<p class="sub">'+esc(_('No months with data in {y}.',{y:insYear}))+'</p>';
   requestAnimationFrame(()=>$$('#yCats .bar i').forEach(i=>i.style.width=i.dataset.w+'%'));
 }
 
-/* ----- Wallets & repeating ----- */
+/* ----- Money: wallets, goals, loans, repeating ----- */
 const FREQ={daily:'Every day',weekly:'Every week',monthly:'Every month',yearly:'Every year'};
 function renderWal(){
   let tot=0;for(const a of S.accs)tot+=balance(a)*rate(a.cur);
   num('#wTot',tot,tot<0?'big neg':'big');
   const miss=S.accs.filter(needsRate);
-  $('#wTotSub').innerHTML=S.accs.length+' wallet'+(S.accs.length===1?'':'s')+' · shown in '+esc(S.cur)+(miss.length?' · <span class="warn">set exchange rate for '+esc(miss.map(a=>a.cur).filter((v,i,x)=>x.indexOf(v)===i).join(', '))+'</span>':'');
+  $('#wTotSub').innerHTML=esc(_(S.accs.length===1?'{n} wallet · shown in {c}':'{n} wallets · shown in {c}',{n:S.accs.length,c:S.cur}))+(miss.length?' · <span class="warn">'+esc(_('set exchange rate for {c}',{c:miss.map(a=>a.cur).filter((v,i,x)=>x.indexOf(v)===i).join(', ')}))+'</span>':'');
   $('#wXfer').hidden=S.accs.length<2;
   $('#wList').innerHTML=S.accs.map(a=>{const b=balance(a),conv=a.cur!==S.cur;
-    return '<div class="tx" data-wal="'+esc(a.id)+'" role="button" tabindex="0"><div class="ic" style="background:var(--acs)">'+esc(a.emoji)+'</div><div class="m"><div class="t">'+esc(a.name)+'</div><div class="sub">'+esc(a.cur)+(needsRate(a)?' · <span class="warn">needs exchange rate</span>':'')+'</div></div><b class="'+(b<0?'neg':'')+'">'+esc(fmt(b,a.cur))+(conv?'<span class="alt">≈ '+esc(fmt(b*rate(a.cur)))+'</span>':'')+'</b></div>'}).join('');
+    return '<div class="tx" data-wal="'+esc(a.id)+'" role="button" tabindex="0"><div class="ic" style="background:var(--acs)">'+esc(a.emoji)+'</div><div class="m"><div class="t">'+esc(a.name)+'</div><div class="sub">'+esc(a.cur)+(needsRate(a)?' · <span class="warn">'+esc(_('needs exchange rate'))+'</span>':'')+'</div></div><b class="'+(b<0?'neg':'')+'">'+esc(fmt(b,a.cur))+(conv?'<span class="alt">≈ '+esc(fmt(b*rate(a.cur)))+'</span>':'')+'</b></div>'}).join('');
+  renderGoals();renderDebts();
   const rs=S.rec.slice().sort((a,b)=>(b.on-a.on)||occ(a,a.n).localeCompare(occ(b,b.n)));
-  $('#rList').innerHTML=rs.map(r=>{const c=r.type==='i'?{emoji:'💰',color:'#22c55e',name:'Income'}:cat(r.cat),a=acc(r.acc);
-    return '<div class="tx" data-rec="'+esc(r.id)+'" role="button" tabindex="0"><div class="ic" style="background:'+c.color+'33">'+c.emoji+'</div><div class="m"><div class="t">'+esc(r.note||c.name)+'</div><div class="sub">'+FREQ[r.freq]+' · '+(r.on?'next '+occ(r,r.n):'ended or paused')+'</div></div><b class="'+(r.type==='i'?'pos':'neg')+'">'+(r.type==='i'?'+':'−')+esc(fmt(r.amt,a.cur))+'</b></div>'}).join('')||'<p class="sub">Rent, salary, subscriptions… set them once and they are added for you on time.</p>';
+  $('#rList').innerHTML=rs.map(r=>{const c=r.type==='i'?{emoji:'💰',color:'#22c55e',name:_('Income')}:{...cat(r.cat),name:cname(cat(r.cat))},a=acc(r.acc);
+    return '<div class="tx" data-rec="'+esc(r.id)+'" role="button" tabindex="0"><div class="ic" style="background:'+c.color+'33">'+c.emoji+'</div><div class="m"><div class="t">'+esc(r.note||c.name)+'</div><div class="sub">'+esc(_(FREQ[r.freq]))+' · '+esc(r.on?_('next {d}',{d:occ(r,r.n)}):_('ended or paused'))+'</div></div><b class="'+(r.type==='i'?'pos':'neg')+'">'+(r.type==='i'?'+':'−')+esc(fmt(r.amt,a.cur))+'</b></div>'}).join('')||'<p class="sub">'+esc(_('Rent, salary, subscriptions… set them once and they are added for you on time.'))+'</p>';
 }
 
 /* ----- tabs ----- */

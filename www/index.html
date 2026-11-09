@@ -13,7 +13,7 @@
  <header class="top">
   <div class="ttl"><h1 id="hi">Spendly</h1><div class="sub" id="pageSub">Overview</div></div>
   <div class="row">
-   <button class="ib" id="btnAcct" aria-label="Account and backup"><span id="acctFace">☁</span><i class="dot" id="acctDot" hidden></i></button>
+   <button class="ib" id="btnAcct" aria-label="Account, backup and security"><span id="acctFace">☁</span><i class="dot" id="acctDot" hidden></i></button>
    <button class="ib" id="btnSet" aria-label="Settings">⚙</button>
   </div>
  </header>
@@ -37,6 +37,7 @@
      <div><span class="sub" id="k4l">Avg / day</span><b id="k4">0</b></div>
     </div>
    </div>
+   <div class="card plan" id="planCard" hidden><h2>Plan for this month</h2><div id="planBody"></div><button class="btn sm" data-act="ask" type="button">✨ Ask an AI assistant</button></div>
    <div class="grid">
     <div class="card"><h2>Where it went <span class="hint">tap a slice to see them</span></h2>
      <div class="cv" id="cv1"><canvas id="c1"></canvas></div>
@@ -69,7 +70,7 @@
    <div class="card"><div class="monthbar tight"><button class="ib" id="yPv" aria-label="Previous year">‹</button><b id="yLbl"></b><button class="ib" id="yNx" aria-label="Next year">›</button></div>
     <div class="trio" id="yKpi"></div>
     <h2 style="margin-top:14px">Top categories</h2><div id="yCats"></div></div>
-   <div class="card"><h2>Month by month</h2><div id="yTbl"></div></div>
+   <div class="card"><div class="rowb"><h2>Month by month</h2><button class="btn sm" id="rpt" type="button">Share PDF report</button></div><div id="yTbl"></div></div>
   </section>
 
   <!-- WALLETS -->
@@ -77,6 +78,8 @@
    <div class="card hero"><span class="sub">Total balance</span><div class="big" id="wTot">0</div><div class="sub" id="wTotSub"></div>
     <div class="row" style="margin-top:12px"><button class="btn" id="wAdd">+ Wallet</button><button class="btn" id="wXfer">⇄ Transfer</button></div></div>
    <div class="card list" id="wList"></div>
+   <div class="card"><div class="rowb"><h2>Savings goals</h2><button class="btn sm" id="gAdd2" type="button">+ New</button></div><div id="gList"></div></div>
+   <div class="card"><div class="rowb"><h2>Loans &amp; debts</h2><button class="btn sm" id="dAdd" type="button">+ New</button></div><div class="sub" id="dSum" style="margin-bottom:6px"></div><div id="dList"></div></div>
    <div class="card"><div class="rowb"><h2>Repeating</h2><button class="btn sm" id="rAdd">+ New</button></div><div id="rList"></div></div>
   </section>
  </main>
@@ -87,7 +90,7 @@
  <button class="tb" data-tab="act"><svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9"/></svg><span>Activity</span></button>
  <button class="fab" id="fab" aria-label="Add transaction"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
  <button class="tb" data-tab="ins"><svg viewBox="0 0 24 24"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span>Insights</span></button>
- <button class="tb" data-tab="wal"><svg viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12v4M4 7v10a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H6a2 2 0 0 1-2-2zM16 14h2"/></svg><span>Wallets</span></button>
+ <button class="tb" data-tab="wal"><svg viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12v4M4 7v10a2 2 0 0 0 2 2h13a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1H6a2 2 0 0 1-2-2zM16 14h2"/></svg><span>Money</span></button>
 </nav>
 
 <div id="sheets"></div>
@@ -97,8 +100,12 @@
 <script src="chart.umd.js"></script>
 <script src="js/config.js"></script>
 <script src="js/store.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/bn.js"></script>
 <script src="js/sync.js"></script>
 <script src="js/app.js"></script>
+<script src="js/assist.js"></script>
+<script src="js/extras.js"></script>
 <script src="js/forms.js"></script>
 </body>
 </html>

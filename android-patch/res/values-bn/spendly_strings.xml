@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sc_expense_short">খরচ যোগ</string>
+    <string name="sc_expense_long">খরচ যোগ করুন</string>
+    <string name="sc_income_short">আয় যোগ</string>
+    <string name="sc_income_long">আয় যোগ করুন</string>
+    <string name="sc_ask_short">এআই-কে জিজ্ঞাসা</string>
+    <string name="sc_ask_long">আমার টাকার হিসাব নিয়ে এআই-কে জিজ্ঞাসা করুন</string>
+</resources>
